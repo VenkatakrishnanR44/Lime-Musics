@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lime Plays</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-black: #000000;
+            --sidebar-width: 240px;
+            --player-height: 90px;
+            --mobile-nav-height: 65px;
+            --accent-blue: #3ea6ff;
+            --text-gray: #aaaaaa;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Sidebar - Desktop Only */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-black);
+            height: 100%;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #111;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 12px 30px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-item:hover { background-color: #1a1a1a; }
+        .nav-item.active { background-color: #1a1a1a; color: var(--accent-blue); }
+
+        /* Mobile Bottom Nav - Fixed Positioning Fix */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--mobile-nav-height);
+            background: rgba(10, 10, 10, 0.98);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid #222;
+            z-index: 1000;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-nav { display: flex; }
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            background: linear-gradient(to bottom, #121212 0%, #000000 100%);
+            /* Add padding so content isn't covered by player/nav */
+            padding-bottom: calc(var(--player-height) + var(--mobile-nav-height) + 20px);
+        }
+
+        @media (min-width: 768px) {
+            .content-area {
+                padding: 30px 50px;
+                padding-bottom: calc(var(--player-height) + 40px);
+            }
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 20px;
+        }
+
+        .release-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            padding: 0 20px;
+        }
+
+        .album-card {
+            background: #181818;
+            padding: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .album-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-bottom: 8px;
+        }
+
+        /* Album Screen Styling */
+        .album-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .album-layout { flex-direction: row; gap: 40px; padding: 0; }
+        }
+
+        .header-art {
+            width: 180px;
+            height: 180px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .track-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 40px 50px;
+            padding: 12px 8px;
+            border-radius: 8px;
+            align-items: center;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .track-row.playing { color: var(--accent-blue); }
+        .heart-icon.liked { color: #ff4b4b; }
+
+        /* Player Bar - Floating style for Mobile to avoid overlap */
+        .player-bar {
+            position: fixed;
+            bottom: var(--mobile-nav-height);
+            left: 0;
+            width: 100%;
+            height: var(--player-height);
+            background: #080808;
+            border-top: 1px solid #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 900;
+        }
+
+        @media (min-width: 768px) {
+            .player-bar {
+                bottom: 0;
+                background: #050505;
+            }
+        }
+
+        .player-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            padding: 0 12px;
+            min-width: 0;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: #222;
+            border-radius: 2px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .hidden { display: none; }
+        
+        /* Mobile Nav Item Active State */
+        .m-nav-item.active { color: var(--accent-blue); opacity: 1; }
+        .m-nav-item { opacity: 0.6; transition: 0.2s; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="error-toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[2000] hidden"></div>
+
+    <div class="main-container">
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar">
+            <div class="brand" onclick="showSection('home')">
+                <i class="fas fa-play-circle text-sky-500 text-2xl"></i>
+                <span>Lime Plays</span>
+            </div>
+            <nav class="flex flex-col gap-1">
+                <div id="nav-home" class="nav-item active" onclick="showSection('home')">
+                    <i class="fas fa-home"></i> Home
+                </div>
+                <div id="nav-liked" class="nav-item" onclick="showSection('liked')">
+                    <i class="fas fa-heart"></i> Liked Musics
+                </div>
+            </nav>
+        </aside>
+
+        <main class="content-area" id="main-scroll">
+            <!-- Home -->
+            <div id="home-screen">
+                <h2 class="section-title">Releases for you</h2>
+                <div class="release-grid" id="discovery-grid"></div>
+            </div>
+
+            <!-- Liked -->
+            <div id="liked-screen" class="hidden">
+                <h2 class="section-title">Liked Musics</h2>
+                <div id="liked-list" class="flex flex-col px-4"></div>
+            </div>
+
+            <!-- Album Detail -->
+            <div id="album-screen" class="hidden">
+                <div class="album-layout">
+                    <div class="flex flex-col items-center md:items-start text-center md:text-left">
+                        <img id="album-art" src="" class="header-art" alt="">
+                        <div id="album-name" class="text-2xl font-black mt-4"></div>
+                        <div class="text-neutral-400 mb-4 text-sm">
+                            <span id="album-artist-sub" class="text-white"></span> • Album
+                        </div>
+                        <button onclick="playTrack(0, currentAlbum.id)" class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-lg mb-4">
+                            <i class="fas fa-play ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="w-full flex-1" id="track-list"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Player Bar -->
+    <footer class="player-bar">
+        <div class="player-controls-left flex items-center gap-3">
+            <i class="fas fa-step-backward cursor-pointer text-neutral-400 hover:text-white" onclick="prevTrack()"></i>
+            <div onclick="togglePlay()" class="w-9 h-9 bg-white text-black rounded-full flex items-center justify-center cursor-pointer">
+                <i id="play-icon" class="fas fa-play text-xs ml-0.5"></i>
+            </div>
+            <i class="fas fa-step-forward cursor-pointer text-neutral-400 hover:text-white" onclick="nextTrack()"></i>
+        </div>
+
+        <div class="player-center">
+            <div class="flex items-center gap-3 w-full overflow-hidden">
+                <img id="p-art" src="https://via.placeholder.com/40" class="w-9 h-9 rounded shrink-0 object-cover" alt="">
+                <div class="flex flex-col min-width-0 overflow-hidden">
+                    <span id="p-title" class="text-xs font-bold truncate">Select a song</span>
+                    <span id="p-artist" class="text-[10px] text-neutral-500 truncate">-</span>
+                </div>
+            </div>
+            <div class="progress-container" onclick="seek(event)">
+                <div id="p-progress" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="hidden md:flex w-32 justify-end items-center gap-3">
+            <i class="fas fa-volume-up text-neutral-500 text-sm"></i>
+            <div class="flex-1 h-1 bg-zinc-800 rounded-full">
+                <div class="w-2/3 h-full bg-neutral-400"></div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Nav -->
+    <div class="mobile-nav">
+        <div id="m-nav-home" class="m-nav-item active text-center" onclick="showSection('home')">
+            <i class="fas fa-home text-xl"></i>
+            <div class="text-[10px] mt-1">Home</div>
+        </div>
+        <div id="m-nav-liked" class="m-nav-item text-center" onclick="showSection('liked')">
+            <i class="fas fa-heart text-xl"></i>
+            <div class="text-[10px] mt-1">Liked</div>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        const albums = [
+            {
+                id: "karuppu",
+                name: "Karuppu",
+                artist: "Sai Abhyankar",
+                desc: "Energetic Tamil soundtrack (2024).",
+                cover: "karuppu img.jpg",
+                tracks: [
+                    { id: "k1", title: "God Mode", artists: "Sai Abhyankar", duration: "4:00", url: "God-Mode.mp3" },
+                    { id: "k2", title: "Raathu Rasan", artists: "Sai Abhyankar", duration: "3:15", url: "Raathu-Raasan.mp3" },
+                    { id: "k3", title: "Nanga Nalu Peru", artists: "Sai Abhyankar", duration: "3:17", url: "Naanga-Naalu-Peru.mp3" },
+                    { id: "k4", title: "Karuppa Kooda Va", artists: "Sai Abhyankar", duration: "4:10", url: "Karuppa-Kooda-Va.mp3" },
+                    { id: "k5", title: "Verappa", artists: "Sai Abhyankar", duration: "1:40", url: "Verappa.mp3" }
+                ]
+            },
+            {
+                id: "jananayagan",
+                name: "Jananayagan",
+                artist: "Anirudh",
+                desc: "Official album featuring powerful tracks.",
+                cover: "jana img.jpg",
+                tracks: [
+                    { id: "j1", title: "Chella Magale", artists: "Anirudh", duration: "3:16", url: "Chella-Magale-MassTamilan.dev.mp3" },
+                    { id: "j2", title: "Oru Pere Varalaaru", artists: "Anirudh", duration: "4:07", url: "Oru-Pere-Varalaaru-MassTamilan.dev.mp3" },
+                    { id: "j3", title: "Raavana Mavandaa", artists: "Anirudh", duration: "3:33", url: "Raavana-Mavandaa-MassTamilan.dev.mp3" },
+                    { id: "j4", title: "Thalapathy Kacheri", artists: "Anirudh", duration: "3:52", url: "Thalapathy Kacheri.mp3" }
+                ]
+            },
+            {
+                id: "jailer",
+                name: "Jailer",
+                artist: "Anirudh",
+                desc: "Official Thalaivar album featuring powerful tracks.",
+                cover: "jailer img.jpg",
+                tracks: [
+                    { id: "ja1", title: "Alappara Theme", artists: "Anirudh", duration: "1:17", url: "Alappara-Theme-(Instrumental).mp3" },
+                    { id: "ja2", title: "Hukum - Thalaivar Alappara", artists: "Anirudh", duration: "3:27", url: "Hukum-Thalaivar-Alappara.mp3" },
+                    { id: "ja3", title: "Jailer Drill Theme", artists: "Anirudh", duration: "00:43", url: "Jailer-Drill-Theme-(Instrumental).mp3" },
+                    { id: "ja4", title: "Jailer Theme", artists: "Anirudh", duration: "1:02", url: "Jailer-Theme-(Instrumental).mp3" },
+                    { id: "ja5", title: "Jujubee", artists: "Anirudh", duration: "2:47", url: "Jujubee.mp3" },
+                    { id: "ja6", title: "Kaavaalaa", artists: "Anirudh", duration: "3:10", url: "Kaavaalaa.mp3" },
+                    { id: "ja7", title: "Muthuvel Pandian Theme", artists: "Anirudh", duration: "1:42", url: "Muthuvel-Pandian-Theme-(Instrumental).mp3" },
+                    { id: "ja8", title: "Rathamaarey", artists: "Anirudh", duration: "4:12", url: "Rathamaarey.mp3" },
+                ]
+            }
+        ];
+
+        let currentAlbum = null;
+        let currentIdx = -1;
+        let likedSongs = []; 
+
+        const audio = document.getElementById('audio-player');
+        const playIcon = document.getElementById('play-icon');
+        const progressBar = document.getElementById('p-progress');
+        const errorToast = document.getElementById('error-toast');
+
+        window.onload = () => renderDiscovery();
+
+        audio.ontimeupdate = () => {
+            if (audio.duration) {
+                progressBar.style.width = (audio.currentTime / audio.duration) * 100 + '%';
+            }
+        };
+
+        audio.onended = () => nextTrack();
+
+        function renderDiscovery() {
+            const grid = document.getElementById('discovery-grid');
+            grid.innerHTML = albums.map(a => `
+                <div class="album-card" onclick="openAlbum('${a.id}')">
+                    <img src="${a.cover}" onerror="this.src='https://via.placeholder.com/200?text=Music'">
+                    <div class="font-bold text-xs truncate">${a.name}</div>
+                    <div class="text-[10px] text-neutral-500 truncate">${a.artist}</div>
+                </div>
+            `).join('');
+        }
+
+        function openAlbum(id) {
+            currentAlbum = albums.find(a => a.id === id);
+            showSection('album');
+            document.getElementById('album-art').src = currentAlbum.cover;
+            document.getElementById('album-name').innerText = currentAlbum.name;
+            document.getElementById('album-artist-sub').innerText = currentAlbum.artist;
+            renderTrackList();
+        }
+
+        function renderTrackList() {
+            const list = document.getElementById('track-list');
+            list.innerHTML = currentAlbum.tracks.map((t, i) => {
+                const isLiked = likedSongs.some(ls => ls.id === t.id);
+                const isPlaying = currentIdx === i && currentAlbum.tracks[currentIdx]?.id === t.id;
+                return `
+                <div class="track-row ${isPlaying ? 'playing' : ''}" onclick="playTrack(${i}, '${currentAlbum.id}')">
+                    <div class="text-neutral-500">${i + 1}</div>
+                    <div class="overflow-hidden">
+                        <div class="font-bold truncate">${t.title}</div>
+                        <div class="text-[10px] text-neutral-500 truncate">${t.artists}</div>
+                    </div>
+                    <div class="flex justify-center" onclick="event.stopPropagation(); toggleLike('${t.id}', '${currentAlbum.id}')">
+                        <i class="fas fa-heart heart-icon ${isLiked ? 'liked' : 'text-neutral-700'}"></i>
+                    </div>
+                    <div class="text-right text-neutral-500 text-[10px]">${t.duration}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleLike(trackId, albumId) {
+            const album = albums.find(a => a.id === albumId);
+            const track = album.tracks.find(t => t.id === trackId);
+            const idx = likedSongs.findIndex(ls => ls.id === trackId);
+            
+            if (idx > -1) likedSongs.splice(idx, 1);
+            else likedSongs.push({...track, albumId, albumCover: album.cover});
+            
+            if (!document.getElementById('album-screen').classList.contains('hidden')) renderTrackList();
+            if (!document.getElementById('liked-screen').classList.contains('hidden')) renderLikedSection();
+        }
+
+        function renderLikedSection() {
+            const list = document.getElementById('liked-list');
+            if (likedSongs.length === 0) {
+                list.innerHTML = '<div class="text-neutral-500 text-center py-20 text-sm">No liked songs.</div>';
+                return;
+            }
+            list.innerHTML = likedSongs.map((t, i) => `
+                <div class="track-row" onclick="playLikedTrack(${i})">
+                    <div class="text-neutral-500">${i + 1}</div>
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <img src="${t.albumCover}" class="w-8 h-8 rounded shrink-0">
+                        <div class="flex flex-col truncate">
+                            <div class="font-bold truncate">${t.title}</div>
+                            <div class="text-[10px] text-neutral-500 truncate">${t.artists}</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center" onclick="event.stopPropagation(); toggleLike('${t.id}', '${t.albumId}')">
+                        <i class="fas fa-heart heart-icon liked"></i>
+                    </div>
+                    <div class="text-right text-neutral-500 text-[10px]">${t.duration}</div>
+                </div>`).join('');
+        }
+
+        function playLikedTrack(i) {
+            const track = likedSongs[i];
+            const album = albums.find(a => a.id === track.albumId);
+            playTrack(album.tracks.findIndex(at => at.id === track.id), track.albumId);
+        }
+
+        function playTrack(i, albumId) {
+            currentAlbum = albums.find(a => a.id === albumId);
+            currentIdx = i;
+            const track = currentAlbum.tracks[i];
+            
+            document.getElementById('p-title').innerText = track.title;
+            document.getElementById('p-artist').innerText = track.artists;
+            document.getElementById('p-art').src = currentAlbum.cover;
+            
+            audio.src = track.url;
+            audio.play().then(() => playIcon.className = "fas fa-pause text-xs")
+            .catch(() => {
+                showError("Could not play: " + track.title);
+                playIcon.className = "fas fa-play text-xs ml-0.5";
+            });
+            
+            if (!document.getElementById('album-screen').classList.contains('hidden')) renderTrackList();
+        }
+
+        function togglePlay() {
+            if (currentIdx === -1) return;
+            if (audio.paused) { audio.play(); playIcon.className = "fas fa-pause text-xs"; }
+            else { audio.pause(); playIcon.className = "fas fa-play text-xs ml-0.5"; }
+        }
+
+        function nextTrack() {
+            if (currentAlbum && currentIdx < currentAlbum.tracks.length - 1) playTrack(currentIdx + 1, currentAlbum.id);
+        }
+
+        function prevTrack() {
+            if (currentAlbum && currentIdx > 0) playTrack(currentIdx - 1, currentAlbum.id);
+        }
+
+        function seek(e) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+        }
+
+        function showError(msg) {
+            errorToast.innerText = msg;
+            errorToast.classList.remove('hidden');
+            setTimeout(() => errorToast.classList.add('hidden'), 3000);
+        }
+
+        function showSection(sec) {
+            ['home-screen', 'liked-screen', 'album-screen'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(sec + '-screen').classList.remove('hidden');
+            
+            // Nav UI
+            document.querySelectorAll('.nav-item, .m-nav-item').forEach(el => el.classList.remove('active'));
+            if (sec === 'home' || sec === 'liked') {
+                document.getElementById('nav-' + sec).classList.add('active');
+                document.getElementById('m-nav-' + sec).classList.add('active');
+            }
+            if (sec === 'liked') renderLikedSection();
+            document.getElementById('main-scroll').scrollTop = 0;
+        }
+    </script>
+</body>
+</html>
