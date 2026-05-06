@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lime Plays</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-black: #000000;
+            --sidebar-width: 240px;
+            --player-height: 90px;
+            --mobile-nav-height: 65px;
+            --accent-blue: #3ea6ff;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-black);
+            height: 100%;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #111;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 12px 30px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-item:hover { background-color: #1a1a1a; }
+        .nav-item.active { background-color: #1a1a1a; color: var(--accent-blue); }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--mobile-nav-height);
+            background: rgba(10, 10, 10, 0.98);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid #222;
+            z-index: 1000;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-nav { display: flex; }
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            background: linear-gradient(to bottom, #121212 0%, #000000 100%);
+            padding-bottom: calc(var(--player-height) + var(--mobile-nav-height) + 20px);
+        }
+
+        @media (min-width: 768px) {
+            .content-area {
+                padding-bottom: calc(var(--player-height) + 20px);
+            }
+        }
+
+        .player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--player-height);
+            background: #050505;
+            border-top: 1px solid #1a1a1a;
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 900;
+        }
+
+        @media (max-width: 900px) {
+            .player-bar {
+                grid-template-columns: 1fr 1.5fr;
+                padding: 0 10px;
+            }
+            .player-right { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .player-bar { 
+                bottom: var(--mobile-nav-height);
+                grid-template-columns: 1fr;
+                height: 110px;
+                padding: 8px 12px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .player-left { 
+                width: 100%; 
+                margin-bottom: 8px;
+                justify-content: flex-start;
+            }
+            .player-center { width: 100%; }
+            .player-right { display: none; }
+            .playback-controls { gap: 32px; margin-bottom: 4px; }
+        }
+
+        .player-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .player-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .player-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 20px;
+        }
+
+        .progress-wrapper {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-container {
+            flex: 1;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .time-text {
+            font-size: 10px;
+            color: #888;
+            min-width: 32px;
+            font-family: monospace;
+        }
+
+        .playback-controls {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 120px;
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            flex: 1;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .release-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .album-card {
+            background: #121212;
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .album-card:hover { transform: translateY(-5px); background: #1a1a1a; }
+
+        .album-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            object-fit: cover;
+            margin-bottom: 12px;
+        }
+
+        .album-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 40px 24px 24px;
+            gap: 24px;
+        }
+
+        @media (min-width: 768px) {
+            .album-header {
+                flex-direction: row;
+                align-items: flex-end;
+                text-align: left;
+                padding: 60px 40px 40px;
+                gap: 32px;
+            }
+        }
+
+        .track-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 40px 60px;
+            padding: 10px 16px;
+            border-radius: 4px;
+            align-items: center;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .track-row:hover { background: rgba(255,255,255,0.05); }
+        .track-row.playing { color: var(--accent-blue); }
+
+        .btn-play-main {
+            width: 56px;
+            height: 56px;
+            background: #fff;
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="brand" onclick="showSection('home')">
+                <i class="fas fa-play-circle text-sky-500 text-2xl"></i>
+                <span>Lime Plays</span>
+            </div>
+            <nav class="flex flex-col gap-1">
+                <div id="nav-home" class="nav-item active" onclick="showSection('home')">
+                    <i class="fas fa-home"></i> Home
+                </div>
+                <div id="nav-liked" class="nav-item" onclick="showSection('liked')">
+                    <i class="fas fa-heart"></i> Liked Musics
+                </div>
+            </nav>
+        </aside>
+
+        <main class="content-area" id="main-scroll">
+            <div id="home-screen">
+                <h2 class="text-2xl font-bold p-6">Releases for you</h2>
+                <div class="release-grid" id="discovery-grid"></div>
+            </div>
+
+            <div id="liked-screen" class="hidden">
+                <h2 class="text-2xl font-bold p-6">Liked Musics</h2>
+                <div id="liked-list" class="flex flex-col px-4"></div>
+            </div>
+
+            <div id="album-screen" class="hidden">
+                <div class="album-header">
+                    <img id="album-art" src="" class="w-48 h-48 md:w-64 md:h-64 rounded shadow-2xl object-cover">
+                    <div class="flex-1">
+                        <span class="text-xs font-bold uppercase tracking-widest text-neutral-400">Album</span>
+                        <h1 id="album-name" class="text-3xl md:text-7xl font-black mt-2 mb-4 leading-tight"></h1>
+                        <div class="text-sm">
+                            <span id="album-artist-sub" class="font-bold"></span> • <span id="album-year-sub" class="text-neutral-400"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4">
+                    <div class="flex items-center justify-center md:justify-start gap-8 mb-8">
+                        <button onclick="playTrack(0, currentAlbum.id)" class="btn-play-main shadow-xl">
+                            <i class="fas fa-play ml-1"></i>
+                        </button>
+                        <i class="far fa-heart text-2xl text-neutral-400 cursor-pointer hover:text-white"></i>
+                    </div>
+                    <div id="track-list"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="player-bar">
+        <div class="player-left">
+            <img id="p-art" src="https://via.placeholder.com/56" class="w-12 h-12 md:w-14 md:h-14 rounded object-cover shadow-lg" alt="">
+            <div class="flex flex-col min-w-0">
+                <span id="p-title" class="text-sm font-bold truncate">Select a song</span>
+                <span id="p-artist" class="text-xs text-neutral-400 truncate">-</span>
+            </div>
+        </div>
+
+        <div class="player-center">
+            <div class="playback-controls">
+                <i class="fas fa-step-backward cursor-pointer text-neutral-400 hover:text-white text-lg" onclick="prevTrack()"></i>
+                <div id="play-btn-wrapper" onclick="togglePlay()" class="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
+                    <i id="play-icon" class="fas fa-play text-sm ml-0.5"></i>
+                </div>
+                <i class="fas fa-step-forward cursor-pointer text-neutral-400 hover:text-white text-lg" onclick="nextTrack()"></i>
+            </div>
+            <div class="progress-wrapper">
+                <span id="time-current" class="time-text">0:00</span>
+                <div class="progress-container" onclick="seek(event)">
+                    <div id="p-progress" class="progress-fill"></div>
+                </div>
+                <span id="time-total" class="time-text">0:00</span>
+            </div>
+        </div>
+
+        <div class="player-right">
+            <div class="volume-container">
+                <i id="volume-icon" class="fas fa-volume-up text-neutral-400 text-sm"></i>
+                <input type="range" id="volume-control" class="volume-slider" min="0" max="1" step="0.01" value="1" oninput="updateVolume(this.value)">
+            </div>
+        </div>
+    </footer>
+
+    <div class="mobile-nav">
+        <div id="m-nav-home" class="flex flex-col items-center opacity-60" onclick="showSection('home')">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-[10px] mt-1">Home</span>
+        </div>
+        <div id="m-nav-liked" class="flex flex-col items-center opacity-60" onclick="showSection('liked')">
+            <i class="fas fa-heart text-lg"></i>
+            <span class="text-[10px] mt-1">Liked</span>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        const albums = [
+            {
+                id: "karuppu",
+                name: "Karuppu",
+                artist: "Sai Abhyankar",
+                year: "2024", // Change year here
+                cover: "karuppu img.jpg",
+                tracks: [
+                    { id: "k1", title: "God Mode", artists: "Sai Abhyankar", duration: "4:00", url: "God-Mode.mp3" },
+                    { id: "k2", title: "Raathu Rasan", artists: "Sai Abhyankar", duration: "3:15", url: "Raathu-Raasan.mp3" },
+                    { id: "k3", title: "Nanga Nalu Peru", artists: "Sai Abhyankar", duration: "3:17", url: "Naanga-Naalu-Peru.mp3" },
+                    { id: "k4", title: "Karuppa Kooda Va", artists: "Sai Abhyankar", duration: "4:10", url: "Karuppa-Kooda-Va.mp3" },
+                    { id: "k5", title: "Verappa", artists: "Sai Abhyankar", duration: "1:40", url: "Verappa.mp3" }
+                ]
+            },
+            {
+                id: "jailer",
+                name: "Jailer",
+                artist: "Anirudh",
+                year: "2023", // Change year here
+                cover: "jailer img.jpg",
+                tracks: [
+                    { id: "ja1", title: "Alappara Theme", artists: "Anirudh", duration: "1:17", url: "Alappara-Theme-(Instrumental).mp3" },
+                    { id: "ja2", title: "Hukum - Thalaivar Alappara", artists: "Anirudh", duration: "3:27", url: "Hukum-Thalaivar-Alappara.mp3" },
+                    { id: "ja3", title: "Jailer Drill Theme", artists: "Anirudh", duration: "0:43", url: "Jailer-Drill-Theme-(Instrumental).mp3" },
+                    { id: "ja4", title: "Jailer Theme", artists: "Anirudh", duration: "1:02", url: "Jailer-Theme-(Instrumental).mp3" },
+                    { id: "ja5", title: "Jujubee", artists: "Anirudh", duration: "2:47", url: "Jujubee.mp3" },
+                    { id: "ja6", title: "Kaavaalaa", artists: "Anirudh", duration: "3:10", url: "Kaavaalaa.mp3" },
+                    { id: "ja7", title: "Muthuvel Pandian Theme", artists: "Anirudh", duration: "1:42", url: "Muthuvel-Pandian-Theme-(Instrumental).mp3" },
+                    { id: "ja8", title: "Rathamaarey", artists: "Anirudh", duration: "4:12", url: "Rathamaarey.mp3" },
+                ]
+            },
+            {
+                id: "jananayagan",
+                name: "Jananayagan",
+                artist: "Anirudh",
+                year: "2024", // Change year here
+                cover: "jana img.jpg",
+                tracks: [
+                    { id: "j1", title: "Chella Magale", artists: "Anirudh", duration: "3:16", url: "Chella-Magale-MassTamilan.dev.mp3" },
+                    { id: "j2", title: "Oru Pere Varalaaru", artists: "Anirudh", duration: "4:07", url: "Oru-Pere-Varalaaru-MassTamilan.dev.mp3" },
+                    { id: "j3", title: "Raavana Mavandaa", artists: "Anirudh", duration: "3:33", url: "Raavana-Mavandaa-MassTamilan.dev.mp3" },
+                    { id: "j4", title: "Thalapathy Kacheri", artists: "Anirudh", duration: "3:52", url: "Thalapathy Kacheri.mp3" }
+                ]
+            },
+            {
+                id: "dude",
+                name: "Dude",
+                artist: "Sai Abhyankkar",
+                year: "2024", // Change year here
+                cover: "dude img.jpg",
+                tracks: [
+                    { id: "du1", title: "Blud Is On His Way", artists: "Sai Abhyankkar", duration: "1:17", url: "Blud Is On His Way.mp3" },
+                    { id: "du2", title: "Dude Trailer Blast (Theme)", artists: "Sai Abhyankkar", duration: "2:41", url: "Dude Trailer Blast (Theme).mp3" },
+                    { id: "du3", title: "Kannukulla", artists: "Sai Abhyankkar", duration: "4:34", url: "Kannukulla.mp3" },
+                    { id: "du4", title: "Nallaru Po", artists: "Sai Abhyankkar", duration: "3:56", url: "Nallaru Po.mp3" },
+                    { id: "du5", title: "Oorum Blood", artists: "Sai Abhyankkar", duration: "4:00", url: "Oorum Blood.mp3" },
+                    { id: "du6", title: "Oorum Blood Unplugged", artists: "Sai Abhyankkar", duration: "1:20", url: "Oorum Blood Unplugged.mp3" },
+                    { id: "du7", title: "Singari", artists: "Sai Abhyankkar", duration: "3:28", url: "Singari.mp3" },
+                    { id: "du8", title: "Yumabaibesa", artists: "Sai Abhyankkar", duration: "2:34", url: "Yumabaibesa.mp3" },
+                ]
+            }
+        ];
+
+        let currentAlbum = null;
+        let currentIdx = -1;
+        let likedSongs = [];
+
+        const audio = document.getElementById('audio-player');
+        const playIcon = document.getElementById('play-icon');
+        const progressBar = document.getElementById('p-progress');
+        const timeCurrent = document.getElementById('time-current');
+        const timeTotal = document.getElementById('time-total');
+
+        window.onload = () => renderDiscovery();
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        audio.ontimeupdate = () => {
+            if (audio.duration) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                progressBar.style.width = progress + '%';
+                timeCurrent.innerText = formatTime(audio.currentTime);
+                timeTotal.innerText = formatTime(audio.duration);
+            }
+        };
+
+        audio.onended = () => {
+            if (currentAlbum && currentIdx < currentAlbum.tracks.length - 1) {
+                nextTrack();
+            } else {
+                playIcon.className = "fas fa-play text-sm ml-0.5";
+            }
+        };
+
+        function renderDiscovery() {
+            const grid = document.getElementById('discovery-grid');
+            grid.innerHTML = albums.map(a => `
+                <div class="album-card" onclick="openAlbum('${a.id}')">
+                    <img src="${a.cover}" onerror="this.src='https://via.placeholder.com/200?text=Album'">
+                    <div class="font-bold text-sm truncate mt-1">${a.name}</div>
+                    <div class="text-xs text-neutral-400 truncate">${a.artist} • ${a.year}</div>
+                </div>
+            `).join('');
+        }
+
+        function openAlbum(id) {
+            currentAlbum = albums.find(a => a.id === id);
+            showSection('album');
+            document.getElementById('album-art').src = currentAlbum.cover;
+            document.getElementById('album-name').innerText = currentAlbum.name;
+            document.getElementById('album-artist-sub').innerText = currentAlbum.artist;
+            document.getElementById('album-year-sub').innerText = currentAlbum.year;
+            renderTrackList();
+        }
+
+        function renderTrackList() {
+            const list = document.getElementById('track-list');
+            list.innerHTML = currentAlbum.tracks.map((t, i) => {
+                const isLiked = likedSongs.some(ls => ls.id === t.id);
+                const isPlaying = currentIdx === i && currentAlbum.id === audio.dataset.albumId;
+                return `
+                <div class="track-row ${isPlaying ? 'playing' : ''}" onclick="playTrack(${i}, '${currentAlbum.id}')">
+                    <div class="text-neutral-500 font-mono text-xs">${i + 1}</div>
+                    <div class="overflow-hidden">
+                        <div class="font-bold text-sm truncate">${t.title}</div>
+                        <div class="text-[11px] text-neutral-400 truncate">${t.artists}</div>
+                    </div>
+                    <div class="text-center" onclick="event.stopPropagation(); toggleLike('${t.id}', '${currentAlbum.id}')">
+                        <i class="fas fa-heart ${isLiked ? 'text-sky-500' : 'text-neutral-700'}"></i>
+                    </div>
+                    <div class="text-right text-neutral-500 text-xs font-mono">${t.duration}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleLike(trackId, albumId) {
+            const album = albums.find(a => a.id === albumId);
+            const track = album.tracks.find(t => t.id === trackId);
+            const idx = likedSongs.findIndex(ls => ls.id === trackId);
+            
+            if (idx > -1) likedSongs.splice(idx, 1);
+            else likedSongs.push({...track, albumId, albumCover: album.cover, year: album.year});
+            
+            renderTrackList();
+            if (!document.getElementById('liked-screen').classList.contains('hidden')) renderLikedSection();
+        }
+
+        function renderLikedSection() {
+            const list = document.getElementById('liked-list');
+            if (likedSongs.length === 0) {
+                list.innerHTML = '<div class="text-neutral-500 text-center py-20 text-sm">No liked songs yet.</div>';
+                return;
+            }
+            list.innerHTML = likedSongs.map((t, i) => `
+                <div class="track-row" onclick="playLikedTrack('${t.albumId}', ${i})">
+                    <div class="text-neutral-500 font-mono text-xs">${i + 1}</div>
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <img src="${t.albumCover}" class="w-10 h-10 rounded shrink-0">
+                        <div class="flex flex-col truncate">
+                            <div class="font-bold text-sm truncate">${t.title}</div>
+                            <div class="text-[11px] text-neutral-400 truncate">${t.artists} • ${t.year}</div>
+                        </div>
+                    </div>
+                    <div class="text-center" onclick="event.stopPropagation(); toggleLike('${t.id}', '${t.albumId}')">
+                        <i class="fas fa-heart text-sky-500"></i>
+                    </div>
+                    <div class="text-right text-neutral-500 text-xs font-mono">${t.duration}</div>
+                </div>`).join('');
+        }
+
+        function playLikedTrack(albumId, likedIdx) {
+            const trackToPlay = likedSongs[likedIdx];
+            const album = albums.find(a => a.id === albumId);
+            const trackIdxInAlbum = album.tracks.findIndex(t => t.id === trackToPlay.id);
+            playTrack(trackIdxInAlbum, albumId);
+        }
+
+        function playTrack(i, albumId) {
+            const album = albums.find(a => a.id === albumId);
+            currentAlbum = album;
+            currentIdx = i;
+            const track = album.tracks[i];
+            
+            document.getElementById('p-title').innerText = track.title;
+            document.getElementById('p-artist').innerText = `${track.artists} • ${album.year}`;
+            document.getElementById('p-art').src = album.cover;
+            
+            audio.dataset.albumId = albumId;
+            audio.src = track.url;
+            audio.load();
+            audio.play().then(() => {
+                playIcon.className = "fas fa-pause text-sm";
+            }).catch(e => console.error("Playback error", e));
+            
+            renderTrackList();
+        }
+
+        function togglePlay() {
+            if (!audio.src) return;
+            if (audio.paused) {
+                audio.play();
+                playIcon.className = "fas fa-pause text-sm";
+            } else {
+                audio.pause();
+                playIcon.className = "fas fa-play text-sm ml-0.5";
+            }
+        }
+
+        function nextTrack() {
+            if (currentAlbum && currentIdx < currentAlbum.tracks.length - 1) {
+                playTrack(currentIdx + 1, currentAlbum.id);
+            }
+        }
+
+        function prevTrack() {
+            if (currentAlbum && currentIdx > 0) {
+                playTrack(currentIdx - 1, currentAlbum.id);
+            }
+        }
+
+        function seek(e) {
+            if (!audio.duration) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+        }
+
+        function updateVolume(val) {
+            audio.volume = val;
+            const icon = document.getElementById('volume-icon');
+            if (val == 0) icon.className = "fas fa-volume-mute text-neutral-500 text-sm";
+            else if (val < 0.5) icon.className = "fas fa-volume-down text-neutral-400 text-sm";
+            else icon.className = "fas fa-volume-up text-neutral-400 text-sm";
+        }
+
+        function showSection(sec) {
+            ['home-screen', 'liked-screen', 'album-screen'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(sec + '-screen').classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item, .mobile-nav div').forEach(el => el.classList.remove('active', 'opacity-100'));
+            
+            if (sec === 'home' || sec === 'liked') {
+                const navId = 'nav-' + sec;
+                const mNavId = 'm-nav-' + sec;
+                if (document.getElementById(navId)) document.getElementById(navId).classList.add('active');
+                if (document.getElementById(mNavId)) document.getElementById(mNavId).classList.add('active', 'opacity-100');
+            }
+            if (sec === 'liked') renderLikedSection();
+            document.getElementById('main-scroll').scrollTop = 0;
+        }
+    </script>
+</body>
+</html>
