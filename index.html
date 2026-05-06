@@ -34,6 +34,7 @@
             display: none;
             height: var(--mobile-header-height);
             align-items: center;
+            justify-content: space-between;
             padding: 0 20px;
             background: var(--bg-black);
             border-bottom: 1px solid #111;
@@ -123,6 +124,21 @@
             .content-area {
                 padding-bottom: calc(var(--player-height) + 20px);
             }
+        }
+
+        /* Desktop Top Header (for info button) */
+        .desktop-header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px 24px;
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 50;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-header { display: none; }
         }
 
         .player-bar {
@@ -302,18 +318,87 @@
         }
 
         .hidden { display: none; }
+
+        /* Modal Styles */
+        #info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #info-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #181818;
+            border: 1px solid #333;
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 16px;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #info-modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .info-btn {
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #222;
+            color: #aaa;
+            transition: 0.2s;
+        }
+
+        .info-btn:hover {
+            background: #333;
+            color: white;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
 
+    <!-- Mobile Header -->
     <header class="mobile-header">
         <div class="flex items-center gap-2" onclick="showSection('home')">
             <i class="fas fa-play-circle text-sky-500"></i>
             <span>Lime Musics</span>
         </div>
+        <div class="info-btn" onclick="toggleModal(true)">
+            <i class="fas fa-info"></i>
+        </div>
     </header>
 
     <div class="main-container">
+        <!-- Desktop Header for Info Button -->
+        <div class="desktop-header">
+            <div class="info-btn" onclick="toggleModal(true)">
+                <i class="fas fa-info"></i>
+            </div>
+        </div>
+
         <aside class="sidebar">
             <div class="brand" onclick="showSection('home')">
                 <i class="fas fa-play-circle text-sky-500 text-2xl"></i>
@@ -363,6 +448,41 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" onclick="toggleModal(false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="absolute top-4 right-4 text-neutral-500 hover:text-white" onclick="toggleModal(false)">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-play-circle text-sky-500 text-3xl"></i>
+                    <h3 class="text-xl font-bold">About Lime Plays</h3>
+                </div>
+                <div class="text-neutral-300 leading-relaxed text-sm space-y-4">
+                    <p>Greeting from Lime Plays! The website has been created with a motive of providing ad-free, background play songs for users which most websites do for money.</p>
+                    <p>100% non profit work, done and managed by single person. Copyrights free songs are added frequently. Enjoy the vibes and spread it! ♥️</p>
+                    <p class="text-[11px] text-neutral-500 italic mt-6">(Involves usage of AI for the development of website, hosted using Github)</p>
+                </div>
+                <div class="mt-4 pt-6 border-t border-neutral-800">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-4">Contact Developer</h4>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-3 text-sm">
+                            <i class="fab fa-instagram text-pink-500 w-5"></i>
+                            <span class="text-neutral-400">Insta:</span>
+                            <span class="font-medium">vk_0468</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <i class="fab fa-discord text-indigo-500 w-5"></i>
+                            <span class="text-neutral-400">Discord:</span>
+                            <span class="font-medium">rvenkatakrishnan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <footer class="player-bar">
@@ -482,6 +602,7 @@
         const progressBar = document.getElementById('p-progress');
         const timeCurrent = document.getElementById('time-current');
         const timeTotal = document.getElementById('time-total');
+        const infoModal = document.getElementById('info-modal');
 
         window.onload = () => renderDiscovery();
 
@@ -490,6 +611,11 @@
             const min = Math.floor(seconds / 60);
             const sec = Math.floor(seconds % 60);
             return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        function toggleModal(show) {
+            if (show) infoModal.classList.add('active');
+            else infoModal.classList.remove('active');
         }
 
         audio.ontimeupdate = () => {
